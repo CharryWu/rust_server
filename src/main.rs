@@ -17,5 +17,6 @@ fn main() {
     let string_borrow: &str = &string;
     dbg!(&string);
     let server = Server::new(string);
-    println!("Server is running on {}", server.addr);
+    println!("========== Server is running on {} ==========", server.addr);
+    server.run();
 }
