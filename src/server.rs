@@ -1,3 +1,4 @@
+use crate::http::Request; // import sibling module need to use `crate::` keyword
 use std::io::Read;
 use std::net::TcpListener;
 
@@ -29,6 +30,18 @@ impl Server {
                                 "========== Received a request ==========\n{}",
                                 String::from_utf8_lossy(&buffer[..bytes_read])
                             );
+                            match Request::try_from(&buffer[..bytes_read]) {
+                                Ok(request) => {
+                                    todo!()
+                                    // println!("========== Request ==========\n{}", request);
+                                }
+                                Err(e) => {
+                                    println!("========== Error ==========\n{}", e);
+                                }
+                            }
+                            // 2 ways to convert between Request and &[u8] using TryFrom and TryInto:
+                            // Request::try_from(&buffer[..bytes_read]);
+                            // let res: &Result<Request, _> = &buffer[..].try_into();
                         }
                         Err(e) => println!("========== Error ==========\n{}", e),
                     }
