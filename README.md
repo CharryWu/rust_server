@@ -92,3 +92,16 @@ By the end of this project, you will:
 - Be able to build and structure real Rust applications.
 - Know how to implement a simple HTTP server and protocol parser.
 - Gain confidence in using Rust for systems programming tasks.
+
+
+## Addendum
+### Question mark operator `?`
+- Explanation with example: https://medium.com/@vennilapugazhenthi/what-does-the-question-mark-operator-do-in-rust-581fe7bc4b0e
+- "?" is used at the end of an expression returning a Result,
+and is equivalent to a match expression, where the Err(err) branch
+expands to an early return Err(From::from(err)),
+and the Ok(ok) branch expands to an ok expression.
+
+
+### String
+- Explanation String vs. &str: https://ezesunday.com/blog/choosing-between-str-and-string-in-rust/
