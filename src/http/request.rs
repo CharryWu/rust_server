@@ -1,10 +1,33 @@
 use super::method::{Method, MethodError}; // Import Method and MethodError from the method module
+use super::{QueryString, Value};
 use std::convert::TryFrom; // convert::From doesn't handle errors, convert::TryFrom handles errors
 use std::error::Error; // Error trait is used for error handling in Rust
 use std::fmt::{Debug, Display, Result as FmtResult};
 use std::str;
 use std::str::Utf8Error; // Utf8Error is used to handle errors when converting bytes to a string
 
+/// Extracts the first word from a string, separated by spaces or carriage returns.
+///
+/// # Arguments
+///
+/// * `request` - A string slice containing the text to parse
+///
+/// # Returns
+///
+/// Returns `Some((word, rest))` where:
+/// * `word` is the first word found before a space or carriage return
+/// * `rest` is the remaining string after the delimiter
+///
+/// Returns `None` if no delimiter is found
+///
+/// # Examples
+///
+/// ```
+/// let text = "GET /path HTTP/1.1";
+/// let (word, rest) = get_next_word(text).unwrap();
+/// assert_eq!(word, "GET");
+/// assert_eq!(rest, "/path HTTP/1.1");
+/// ```
 fn get_next_word<'buf>(request: &'buf str) -> Option<(&'buf str, &'buf str)> {
     for (i, c) in request.chars().enumerate() {
         if c == ' ' || c == '\r' {
@@ -19,7 +42,7 @@ fn get_next_word<'buf>(request: &'buf str) -> Option<(&'buf str, &'buf str)> {
 
 pub struct Request<'buf> {
     method: Method,
-    query_string: Option<&'buf str>, // query string may or may not exist on URL
+    query_string: Option<QueryString<'buf>>, // query string may or may not exist on URL
     path: &'buf str,
 }
 impl<'buf> Request<'buf> {
@@ -50,11 +73,11 @@ impl<'buf> TryFrom<&'buf [u8]> for Request<'buf> {
         }
 
         let method: Method = method.parse()?;
-        let mut query_string: Option<&'buf str> = None;
+        let mut query_string: Option<QueryString<'buf>> = None;
         if let Some(i) = path.find('?') {
             // `if let` syntax allows you to only match on variants you care about
             path = &path[..i]; // Update path to exclude the query string
-            query_string = Some(&path[i + 1..]); // If the path contains a query string, extract it
+            query_string = Some(QueryString::from(&path[i + 1..])); // If the path contains a query string, extract it
         }
 
         Ok(Self {
