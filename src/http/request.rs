@@ -2,7 +2,7 @@ use super::method::{Method, MethodError}; // Import Method and MethodError from 
 use super::{QueryString, Value};
 use std::convert::TryFrom; // convert::From doesn't handle errors, convert::TryFrom handles errors
 use std::error::Error; // Error trait is used for error handling in Rust
-use std::fmt::{Debug, Display, Result as FmtResult};
+use std::fmt::{self, Debug, Display, Result as FmtResult};
 use std::str;
 use std::str::Utf8Error; // Utf8Error is used to handle errors when converting bytes to a string
 
@@ -31,15 +31,56 @@ use std::str::Utf8Error; // Utf8Error is used to handle errors when converting b
 fn get_next_word<'buf>(request: &'buf str) -> Option<(&'buf str, &'buf str)> {
     for (i, c) in request.chars().enumerate() {
         if c == ' ' || c == '\r' {
-            // Return the word and the rest of the string
-            Some((&request[..i], &request[i + 1..])); // Adding 1 to skip the space character, however in non-utf-8 encoded strings this could cause issues
+            return Some((&request[..i], &request[i + 1..])); // Adding 1 to skip the space character, however in non-utf-8 encoded strings this could cause issues
             // + 1 means adding one byte, not just adding one character
             // here is fine since space is exactly one byte in UTF-8
+            // Return the word and the rest of the string; IMPORTANT: `return` statement is needed here
         }
     }
     None
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_next_word_basic() {
+        let input = "GET /path HTTP/1.1";
+        let result = get_next_word(input);
+        assert_eq!(result, Some(("GET", "/path HTTP/1.1")));
+    }
+
+    #[test]
+    fn test_get_next_word_with_carriage_return() {
+        let input = "GET\r/path HTTP/1.1";
+        let result = get_next_word(input);
+        assert_eq!(result, Some(("GET", "/path HTTP/1.1")));
+    }
+
+    #[test]
+    fn test_get_next_word_no_delimiter() {
+        let input = "GET";
+        let result = get_next_word(input);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_get_next_word_empty_string() {
+        let input = "";
+        let result = get_next_word(input);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_get_next_word_multiple_spaces() {
+        let input = "GET    /path HTTP/1.1";
+        let result = get_next_word(input);
+        assert_eq!(result, Some(("GET", "   /path HTTP/1.1")));
+    }
+}
+
+#[derive(Debug)]
 pub struct Request<'buf> {
     method: Method,
     query_string: Option<QueryString<'buf>>, // query string may or may not exist on URL

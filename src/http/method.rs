@@ -1,5 +1,6 @@
-use std::str::FromStr;
+use std::{fmt::Display, str::FromStr};
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Method {
     GET, // (Option<String>), // associated with query string
     POST,
@@ -12,6 +13,7 @@ pub enum Method {
     PATCH,
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct MethodError {
     message: String,
 }
