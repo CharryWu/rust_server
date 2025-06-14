@@ -5,7 +5,7 @@ use std::fmt::{Debug, Display, Result as FmtResult};
 use std::str;
 use std::str::Utf8Error; // Utf8Error is used to handle errors when converting bytes to a string
 
-fn get_next_word(request: &str) -> Option<(&str, &str)> {
+fn get_next_word<'buf>(request: &'buf str) -> Option<(&'buf str, &'buf str)> {
     for (i, c) in request.chars().enumerate() {
         if c == ' ' || c == '\r' {
             // Return the word and the rest of the string
@@ -17,12 +17,12 @@ fn get_next_word(request: &str) -> Option<(&str, &str)> {
     None
 }
 
-pub struct Request {
+pub struct Request<'buf> {
     method: Method,
-    query_string: Option<&str>, // query string may or may not exist on URL
-    path: &str,
+    query_string: Option<&'buf str>, // query string may or may not exist on URL
+    path: &'buf str,
 }
-impl Request {
+impl<'buf> Request<'buf> {
     // don't need to implement convert method on own own, just use std::convert::TryFrom in idiomatic Rust (see below)
     // NOT NEEDED: fn from_byte_array(byte_array: &[u8]) -> Result<Self, String>
 }
@@ -30,12 +30,12 @@ impl Request {
 // Convert &[u8] byte array into Request using TryFrom trait
 // **Parsing logic of request headers goes here**
 // Extract URL path, query param, and HTTP method & protocol into Request struct
-impl TryFrom<&[u8]> for Request {
+impl<'buf> TryFrom<&'buf [u8]> for Request<'buf> {
     // need to assign `Error` type and implement `try_from` method
     type Error = ParseError;
 
     // Return a ParseError::InvalidEncoding if the request is not valid UTF-8
-    fn try_from(buffer: &[u8]) -> Result<Self, Self::Error> {
+    fn try_from(buffer: &'buf [u8]) -> Result<Self, Self::Error> {
         // match str::from_utf8(buf) {
         //     Ok(request) => {}
         //     Err(_) => return Err(ParseError::InvalidEncoding),
@@ -50,8 +50,7 @@ impl TryFrom<&[u8]> for Request {
         }
 
         let method: Method = method.parse()?;
-
-        let mut query_string: Option<&str> = None;
+        let mut query_string: Option<&'buf str> = None;
         if let Some(i) = path.find('?') {
             // `if let` syntax allows you to only match on variants you care about
             path = &path[..i]; // Update path to exclude the query string
