@@ -10,11 +10,22 @@
 /// let server = Server::new("127.0.0.1:8080".to_string());
 /// server.run();
 /// ```
-use crate::http::{Request, Response, StatusCode};
+use crate::http::{ParseError, Request, Response, StatusCode};
 use std::io::{Read, Write}; // For reading from the TCP stream
 use std::net::TcpListener; // For listening to TCP connections
 
-const DEFAULT_BODY: &str = "<html><body><h1>Hello</h1></body></html>";
+/// A trait for handling HTTP requests. Instead of implementing handling logic over
+/// and over in the `Server` struct, we can implement it in a separate struct
+/// and pass it to the `Server` as a parameter, in order to reduce repetition.
+/// This is useful for testing and for implementing different handlers for different routes.
+pub trait Handler {
+    fn handle_request(&mut self, request: &Request) -> Response;
+    fn handle_bad_request(&mut self, e: &ParseError) -> Response {
+        println!("Error: parsing request\n{}", e);
+        Response::new(StatusCode::BadRequest, None)
+    }
+}
+
 #[derive(Debug)]
 pub struct Server {
     pub addr: String, // Address to bind the server to (e.g., "127.0.0.1:8080")
@@ -30,7 +41,7 @@ impl Server {
     }
 
     /// Runs the server, listening for incoming TCP connections and handling requests.
-    pub fn run(&self) {
+    pub fn run(&self, mut handler: impl Handler) {
         println!("Listening on {}", self.addr);
         // Bind the TCP listener to the specified address
         let listener = TcpListener::bind(&self.addr).unwrap();
@@ -53,29 +64,17 @@ impl Server {
                                 String::from_utf8_lossy(&buffer[..bytes_read])
                             );
                             // Attempt to parse the HTTP request from the buffer
-                            match Request::try_from(&buffer[..bytes_read]) {
-                                Ok(request) => {
-                                    // Debug print the parsed request
-                                    dbg!(request);
-                                    // Create a response with a status code of 200 OK and a body of "Hello"
-                                    let response = Response::new(
-                                        StatusCode::Ok,
-                                        Some(DEFAULT_BODY.to_string()),
-                                    );
-                                    // Write the response to the client
-                                    if let Err(e) = response.send(&mut sock_stream) {
-                                        // If there's an error writing to the client, print the error
-                                        println!(
-                                            "========== Error: Failed to write response to client ==========\n{}",
-                                            e
-                                        );
-                                    }
-                                }
-                                Err(e) => {
-                                    // Print any parsing errors
-                                    println!("========== Error ==========\n{}", e);
-                                }
+                            let response = match Request::try_from(&buffer[..bytes_read]) {
+                                Ok(request) => handler.handle_request(&request),
+                                Err(e) => handler.handle_bad_request(&e),
+                            };
+
+                            // Write the response to the client
+                            if let Err(e) = response.send(&mut sock_stream) {
+                                // If there's an error writing to the client, print the error
+                                println!("Error: Failed to write response\n{}", e);
                             }
+
                             // 2 ways to convert between Request and &[u8] using TryFrom and TryInto:
                             // Request::try_from(&buffer[..bytes_read]);
                             // let res: &Result<Request, _> = &buffer[..].try_into();

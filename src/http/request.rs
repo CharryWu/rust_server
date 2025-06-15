@@ -87,6 +87,20 @@ pub struct Request<'buf> {
     path: &'buf str,
 }
 impl<'buf> Request<'buf> {
+    pub fn method(&self) -> &Method {
+        &self.method
+    }
+
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+
+    /// Returns a reference to the query string if it exists, otherwise returns None
+    /// NOTE: instead of returning &Option<QueryString>, we return Option<&QueryString>
+    /// which is more flexible and easier to use in the caller.
+    pub fn query_string(&self) -> Option<&QueryString> {
+        self.query_string.as_ref() // as_ref() converts &Option<QueryString> to Option<&QueryString>
+    }
     // don't need to implement convert method on own own, just use std::convert::TryFrom in idiomatic Rust (see below)
     // NOT NEEDED: fn from_byte_array(byte_array: &[u8]) -> Result<Self, String>
 }

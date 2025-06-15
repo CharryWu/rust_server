@@ -1,15 +1,25 @@
 #![allow(dead_code)]
-#![allow(unused_imports)]
-#![allow(unused_variables)]
 mod http;
 mod server;
-
-use http::Method;
+mod website_handler;
 use server::Server;
+use std::env;
+use std::path::{Path, absolute};
+use website_handler::WebsiteHandler;
 
 fn main() {
-    let string = String::from("127.0.0.1:8080");
-    let server = Server::new(string);
-    println!("========== Server is running on {} ==========", server.addr);
-    server.run();
+    let default_path = format!("{}/public", env!("CARGO_MANIFEST_DIR"));
+    // you can also ues String::from("./public") as default value
+    let public_path = env::var("PUBLIC_PATH").unwrap_or(default_path);
+    let host = env::var("HOST").unwrap_or(String::from("127.0.0.1"));
+    let port = env::var("PORT").unwrap_or(String::from("8080"));
+    let server = Server::new(format!("{}:{}", host, port));
+    println!("================================================");
+    println!("Server is running on http://{}", server.addr);
+    println!(
+        "Serving files from public path: {}",
+        absolute(Path::new(&public_path)).unwrap().display()
+    );
+    println!("================================================");
+    server.run(WebsiteHandler::new(public_path));
 }

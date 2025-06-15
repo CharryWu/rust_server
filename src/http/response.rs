@@ -22,6 +22,9 @@ impl Response {
     ///
     /// This method is more efficient than using `Display` because it avoids the overhead of creating a new string.
     /// Especially when the response body is large (e.g. HTML pages with megabytes size of HTML content).
+    /// It uses `write!` macro directly, instead of returning a copy of the response string.
+    /// It also uses static dispatch, instead of dynamic dispatch,
+    /// which resolves to the correct method of types implementing `Write` trait at compile time.
     ///
     /// # Example
     ///
@@ -32,7 +35,7 @@ impl Response {
     ///
     /// # Arguments
     ///
-    /// * `stream` - The stream to write the response to.
+    /// * `stream` - The stream to write the response to. It can be any type that implements `Write` trait.
     ///
     /// # Returns
     /// * `IoResult<()>` - The result of the write operation.
