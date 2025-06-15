@@ -63,9 +63,7 @@ impl Server {
                                         Some(DEFAULT_BODY.to_string()),
                                     );
                                     // Write the response to the client
-                                    if let Err(e) =
-                                        sock_stream.write_all(response.to_string().as_bytes())
-                                    {
+                                    if let Err(e) = response.send(&mut sock_stream) {
                                         // If there's an error writing to the client, print the error
                                         println!(
                                             "========== Error: Failed to write response to client ==========\n{}",
