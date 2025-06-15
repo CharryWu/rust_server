@@ -10,10 +10,11 @@
 /// let server = Server::new("127.0.0.1:8080".to_string());
 /// server.run();
 /// ```
-use crate::http::Request; // Import the Request struct from the http module
-use std::io::Read; // For reading from the TCP stream
+use crate::http::{Request, Response, StatusCode};
+use std::io::{Read, Write}; // For reading from the TCP stream
 use std::net::TcpListener; // For listening to TCP connections
 
+const DEFAULT_BODY: &str = "<html><body><h1>Hello</h1></body></html>";
 #[derive(Debug)]
 pub struct Server {
     pub addr: String, // Address to bind the server to (e.g., "127.0.0.1:8080")
@@ -54,8 +55,23 @@ impl Server {
                             // Attempt to parse the HTTP request from the buffer
                             match Request::try_from(&buffer[..bytes_read]) {
                                 Ok(request) => {
-                                    dbg!(request); // Debug print the parsed request
-                                    // println!("========== Request ==========\n{}", request);
+                                    // Debug print the parsed request
+                                    dbg!(request);
+                                    // Create a response with a status code of 200 OK and a body of "Hello"
+                                    let response = Response::new(
+                                        StatusCode::Ok,
+                                        Some(DEFAULT_BODY.to_string()),
+                                    );
+                                    // Write the response to the client
+                                    if let Err(e) =
+                                        sock_stream.write_all(response.to_string().as_bytes())
+                                    {
+                                        // If there's an error writing to the client, print the error
+                                        println!(
+                                            "========== Error: Failed to write response to client ==========\n{}",
+                                            e
+                                        );
+                                    }
                                 }
                                 Err(e) => {
                                     // Print any parsing errors
